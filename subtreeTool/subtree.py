@@ -16,9 +16,8 @@ from sb_util import verify_git_lib_install_if_needed, log_this
 if not verify_git_lib_install_if_needed():
     sys.exit()
 
-from subtreeTool.GitExecutor import GitExecutor, project_id
-from subtreeTool.sb_constant import git_actions
-from subtreeTool import tool_path
+from GitExecutor import GitExecutor, project_id, tool_path
+from sb_constant import git_actions
 
 
 def parse_args():

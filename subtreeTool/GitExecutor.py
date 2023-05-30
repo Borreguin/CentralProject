@@ -7,9 +7,9 @@ from typing import List
 
 from git import Repo, Remote, Head
 
-from subtreeTool.InfoTool import InfoTool
-from subtreeTool.sb_constant import changeLogName, pull_action, push_action, infoFileName
-from subtreeTool.sb_util import to_snake_case, log_this
+from InfoTool import InfoTool
+from sb_constant import changeLogName, pull_action, push_action, infoFileName
+from sb_util import to_snake_case, log_this
 
 # global variables to work with
 tool_path = os.path.dirname(os.path.abspath(__file__))
