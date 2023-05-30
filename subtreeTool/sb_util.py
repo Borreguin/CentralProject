@@ -1,5 +1,8 @@
+import os
+import platform
 import re
 import subprocess as sb
+import sys
 
 
 def verify_git_lib_install_if_needed():
@@ -8,17 +11,24 @@ def verify_git_lib_install_if_needed():
         return True
     except Exception as e:
         log_this(f"gitpython was not found. \n{e} \n"
-                 f"I will try to install for you...")
+                 f"I will try to install for you... \n")
 
-    commands = ['pip3 install gitpython', 'pip install gitpython']
+    log_this(f"Your Python version is: {platform.python_version()} | executed on: {os.path.dirname(sys.executable)}")
+    commands = ['pip install --upgrade pip', 'pip3 install --upgrade pip',
+                'pip install gitpython', 'pip3 install gitpython']
+    was_installed = 0
     for command in commands:
         try:
             log_this(f'Try: {command}')
             sb.run(command.split(' '))
-            return True
+            was_installed += 1
         except Exception as e:
             log_this(f'Error: {e}')
-    return False
+    if was_installed >= 2:
+        log_this(f'gitpython was installed successfully... ')
+    else:
+        log_this(f'gitpython was not installed, check for a solution manually.')
+    return was_installed >= 2
 
 
 def log_this(msg: str):
