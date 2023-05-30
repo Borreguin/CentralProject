@@ -18,7 +18,6 @@ working_path = os.getcwd()
 project_id = os.path.basename(working_path)
 
 
-
 class GitExecutor:
     path: str = None
     subtreePath: str = None
@@ -52,13 +51,11 @@ class GitExecutor:
     def __str__(self):
         return f'[{project_id}, {self.path}] \n--> Success: {self.success} \n--> Details: \n{self.details}'
 
-
     def add_remote(self):
         if os.path.exists(tool_info_path):
             pass
         else:
             info_tool = InfoTool()
-
 
     def verify_subtree_path(self):
         self.success = os.path.exists(self.subtreePath)
