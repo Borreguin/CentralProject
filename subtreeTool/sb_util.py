@@ -5,7 +5,8 @@ import re
 import subprocess as sb
 import sys
 from typing import List
-from sb_constant import subtreeConfigFile, subtreeName, subtreePath, remoteRepositoryLink, remoteRepositoryCoreName
+from sb_constant import subtreeConfigFile, subtreeName, subtreePath, remoteRepositoryLink, remoteRepositoryCoreName, \
+    remoteBranchCoreName
 
 
 # -------------------------------------------- Init utils ----------------------------------------
@@ -82,6 +83,7 @@ def set_subtree_config_attributes(self, subtree_config_file_path):
     self.subTreeConfigPath = subtree_config[subtreePath]
     self.remoteLink = subtree_config[remoteRepositoryLink]
     self.remoteName = subtree_config[remoteRepositoryCoreName]
+    self.remoteBranchName = subtree_config[remoteBranchCoreName]
 
 
 def get_main_path(self):

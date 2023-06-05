@@ -2,11 +2,11 @@ from __future__ import annotations
 import os
 from typing import List
 from git import Repo, Remote, Head
-from sb_constant import changeLogName, pull_action, push_action, remoteBranchPrefix, origin
+from sb_constant import changeLogName, pull_action, push_action, origin
 from sb_util import check_subtree_parameters, get_main_path, check_remote_repository, verify_subtree_path, \
     verify_remote_repo_and_branch, stash_project_changes, stash_apply_changes, verify_remote, \
     verify_remote_branch, stash_subtree_changes, get_username_initials, stash_apply_group_changes,  \
-    to_snake_case, log_this, add_message_to_change_log, build_exception_message, stash_count_warning \
+    log_this, add_message_to_change_log, build_exception_message, stash_count_warning \
 
 # Global variables
 tool_path = os.path.dirname(os.path.abspath(__file__))
@@ -32,17 +32,14 @@ class GitExecutor:
     originRepo: Remote
     localBranch: Head
     sharedCommonBranchName: str
-    subtreeBranchName: str
 
     def __init__(self, **kwargs):
         # Set init attributes
         for key, value in kwargs.items():
             setattr(self, key, value)
         self.subtreePath = working_path
-        self.subtreeBranchName = to_snake_case(os.path.basename(self.subtreePath))
-        self.remoteBranchName = remoteBranchPrefix + self.subtreeBranchName
         self.projectId = project_id
-        
+
         # Check subtree parameters / set subtree attributes
         if not check_subtree_parameters(self):
             return
@@ -168,6 +165,8 @@ class GitExecutor:
             self.repository.active_branch.repo.git.execute(command_fetch_remote)
             commands.remove(command_fetch_remote)
             log_this(f'Git fetch remote: {" ".join(command_fetch_remote)}')
+
+            # Change to temporal branch
             try:
                 self.repository.active_branch.repo.git.execute(command_checkout_remote)
             except Exception as e:
