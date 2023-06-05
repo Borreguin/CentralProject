@@ -60,8 +60,7 @@ def check_subtree_parameters(self):
     # Check if subtree.config.yml file doesn't exist
     subtree_config_file_path = os.path.join(self.subtreePath, subtreeConfigFile)
     if not os.path.exists(subtree_config_file_path):
-        self.success, self.message = False, "This is not a valid subtree"
-        self.details = f"Not able to found: {subtree_config_file_path}"
+        self.success, self.details = False, f'Not able to found subtree.config.yml file in path: {subtree_config_file_path}'
         return False
 
     # Set subtree attributes defined in subtree.config.yml
@@ -70,8 +69,7 @@ def check_subtree_parameters(self):
     # Check if field subtreePath in subtree.config.yml file is invalid
     normalized_subtree_config_path = os.path.normpath(self.subTreeConfigPath)
     if normalized_subtree_config_path not in self.subtreePath:
-        self.success, self.message = False, "Invalid path defined in subtree.config.yml"
-        self.details = f"Not able to found: {normalized_subtree_config_path}"
+        self.success, self.details = False, f'Invalid subtree path defined in subtree.config.yml: {normalized_subtree_config_path}'
         return False
 
     return True

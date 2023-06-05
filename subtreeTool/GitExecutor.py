@@ -42,6 +42,7 @@ class GitExecutor:
 
         # Check subtree parameters / set subtree attributes
         if not check_subtree_parameters(self):
+            self.remoteRepo = None
             return
 
         # Set local and remote repositories
@@ -60,7 +61,6 @@ class GitExecutor:
         elif self.action == push_action and self.remoteRepo is not None:
             return self.push_to_remote()
 
-        self.success, self.details = False, 'No action was performed'
         return self
 
     def pull_from_remote(self):
@@ -126,9 +126,9 @@ class GitExecutor:
             self.success, self.details = False, 'This parameter is missing: \n -m "Your message is required"'
             return self
 
-        # Add changes
-        self.repository.active_branch.repo.git.execute('git add .')
-        log_this(f'Git add: git add .')
+        # Add subtree changes
+        self.repository.active_branch.repo.git.execute(f'git add {self.subTreeConfigPath}')
+        log_this(f'Git add: git add {self.subTreeConfigPath}')
 
         # Stashed changes count warning
         stash_count_warning(self)
@@ -139,6 +139,10 @@ class GitExecutor:
 
         stashed_changes = ['subtree_changes_stashed']
         temp_branch_name = f'{self.remoteBranchName}_temp_{get_username_initials(self)}'
+
+        # Add project changes
+        self.repository.active_branch.repo.git.execute('git add .')
+        log_this(f'Git add: git add .')
 
         # Stash project changes
         if 'No local changes to save' not in f'{stash_project_changes(self)}':
@@ -156,9 +160,11 @@ class GitExecutor:
         command_delete_temp_branch = f'git branch -D {temp_branch_name}'.split(' ')
         command_stash_list = f'git stash list'.split(' ')
         command_stash_apply_changes_group = f'git stash apply <#>'.split(' ')
+        command_restore_staged = f'git restore --staged .'.split(' ')
         commands = [command_fetch_remote, command_checkout_remote, command_stash_apply_subtree_by_index,
                     command_git_add, command_commit_changes, command_push_remote, command_checkout_local_branch,
-                    command_delete_temp_branch, command_stash_list, command_stash_apply_changes_group]
+                    command_delete_temp_branch, command_stash_list, command_stash_apply_changes_group,
+                    command_restore_staged]
 
         try:
             # Create temporal branch
@@ -228,6 +234,11 @@ class GitExecutor:
             commands.remove(command_stash_list)
             commands.remove(command_stash_apply_changes_group)
             log_this(f'Get all stashed changes: {" ".join(command_stash_apply_changes_group)}')
+
+            # Restored staged changes
+            self.repository.active_branch.repo.git.execute(command_restore_staged)
+            commands.remove(command_restore_staged)
+            log_this(f'Git restore staged: {" ".join(command_restore_staged)}')
 
             self.success, self.details = True, f'Code successfully pushed to: ' \
                                                f'{self.remoteName} -> {temp_branch_name}' \
