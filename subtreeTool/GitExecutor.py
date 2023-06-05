@@ -129,6 +129,10 @@ class GitExecutor:
             self.success, self.details = False, 'This parameter is missing: \n -m "Your message is required"'
             return self
 
+        # Add changes
+        self.repository.active_branch.repo.git.execute('git add .')
+        log_this(f'Git add: git add .')
+
         # Stashed changes count warning
         stash_count_warning(self)
 
@@ -182,9 +186,13 @@ class GitExecutor:
             temporal_branch: Head = branches[0]
 
             # Get stashed changes
-            commands.remove(command_stash_apply_subtree_by_index)
-            temporal_branch.repo.git.execute(command_stash_apply_subtree_by_index)
-            log_this(f'Get stashed changes: {" ".join(command_stash_apply_subtree_by_index)}')
+            try:
+                commands.remove(command_stash_apply_subtree_by_index)
+                temporal_branch.repo.git.execute(command_stash_apply_subtree_by_index)
+                log_this(f'Get stashed changes: {" ".join(command_stash_apply_subtree_by_index)}')
+            except Exception as e:
+                if "CONFLICT (file location)" in f'{e}':
+                    log_this(f'There are new files in subtree!')
 
             # Edit changelog.txt file
             if not add_message_to_change_log(self, os.path.join(get_main_path(self), changeLogName)):
