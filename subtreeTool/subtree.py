@@ -23,11 +23,7 @@ from sb_constant import git_actions
 def parse_args():
     parser = argparse.ArgumentParser(description="Utility to pull/push subtree changes from/to a Remote repository. "
                                                  "\nFind me: Mathew 6:33")
-    parser.add_argument("path", help=f"Subtree path", type=str)
     parser.add_argument("action", help=f"Action to apply", choices=git_actions)
-    parser.add_argument("remoteName", nargs='?', help=f"Identify which remote repository you want to use", type=str)
-    parser.add_argument("-rb", "--remoteBranchName", help=f"Remote branch where you want pull/push the changes",
-                        type=str)
     parser.add_argument("-m", "--message", help=f"Comment for this pull/push", type=str)
     args = parser.parse_args()
     return args
