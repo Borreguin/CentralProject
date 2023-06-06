@@ -1,13 +1,12 @@
 # General constants
-pull_action, push_action = 'pull', 'push'
-git_actions = [pull_action, push_action]
-changeLogName = 'changelog.txt'
-origin = 'origin'
+pull_action, push_action, create_action = 'pull', 'push', 'create'
+git_actions = [pull_action, push_action, create_action]
+change_log_name = 'changelog.txt'
 
 # Subtree config constants
-subtreeConfigFile = 'subtree.config.yml'
-subtreeName = 'subtreeName'
-subtreePath = 'subtreePath'
-remoteRepositoryLink = 'remoteRepositoryLink'
-remoteRepositoryCoreName = 'remoteRepositoryCoreName'
-remoteBranchCoreName = 'remoteBranchCoreName'
+subtree_config_file = 'subtree.config.yml'
+subtree_name = 'subtreeName'
+subtree_path = 'subtreePath'
+remote_repository_link = 'remoteRepositoryLink'
+remote_repository_core_name = 'remoteRepositoryCoreName'
+remote_branch_core_name = 'remoteBranchCoreName'
