@@ -25,7 +25,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Utility to pull/push subtree changes from/to a Remote repository. "
                                                  "\nFind me: Mathew 6:33")
     parser.add_argument("action", help=f"Action to apply", choices=git_actions)
-    parser.add_argument("-m", "--message", help=f"Comment for this pull/push/create", type=str)
+    parser.add_argument("-m", "--message", help=f"Comment for this pull/push", type=str)
     args = parser.parse_args()
     return args
 

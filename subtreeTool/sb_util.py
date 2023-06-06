@@ -50,8 +50,7 @@ def read_yml_file(path):
 def check_path(label, path):
     if os.path.exists(path):
         return True, f'{label} valid: {path}'
-    else:
-        return False, f'{label } invalid: {path}'
+    return False, f'{label } invalid: {path}'
 
 
 def check_subtree_config_path(subtree_config_path, subtree_path):
@@ -90,7 +89,8 @@ def stash_count_warning(git_executor):
     stash_list_command_output = stash_list(git_executor)
     number_stash_changes = len(stash_list_command_output.splitlines())
     if number_stash_changes > 10:
-        log_this('You have more than 10 stashed changes, you could remove them whit this command: git stash clear')
+        log_this('WARNING: You have more than 10 stashed changes, you could remove them whit this command: '
+                 'git stash clear')
     return number_stash_changes
 
 

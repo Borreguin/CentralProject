@@ -34,11 +34,6 @@ class GitExecutor:
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-        # Check message parameter
-        if self.message is None:
-            self.success, self.details = False, 'This parameter is missing: \n -m "Your message is required"'
-            return
-
         # Check working path
         self.workingPath = os.getcwd()
         self.success, self.details = check_path('Working path', self.workingPath)
@@ -99,11 +94,16 @@ class GitExecutor:
         remotes = [r for r in self.repository.remotes if r.name == self.remoteName]
         if not remotes:
             self.repository.create_remote(self.remoteName, self.remoteLink)
-            log_this(f'Added remote repository {self.remoteName}')
+            log_this(f'Added remote repository {self.remoteName}: link {self.remoteLink}')
             remotes = [r for r in self.repository.remotes if r.name == self.remoteName]
         self.remoteRepo = remotes[0]
 
     def pull_from_remote(self):
+        # Check message parameter
+        if self.message is None:
+            self.success, self.details = False, 'This parameter is missing: \n -m "Your message is required"'
+            return
+
         # Stashed changes count warning
         stash_count_warning(self)
 
@@ -117,24 +117,20 @@ class GitExecutor:
             there_are_changes = True
 
         # Set git commands
-        command_checkout_local = f'git checkout {self.localBranch.name}'.split(' ')
         command_pull = f'git subtree pull --prefix {self.subtreePath} {self.remoteName} {self.remoteBranchName} --squash -m'.split(' ')
         command_pull.append(f'"[{self.remoteName} / {self.subtreeName}] {self.message}"')
+        command_stash_apply = f'git stash apply'.split(' ')
         command_restore_staged = f'git restore --staged .'.split(' ')
-        commands: List[List[str]] = [command_checkout_local, command_pull, command_restore_staged]
+        commands: List[List[str]] = [command_pull, command_stash_apply, command_restore_staged]
         try:
-            # Checkout local branch
-            self.repository.active_branch.repo.git.execute(command_checkout_local)
-            commands.remove(command_checkout_local)
-            log_this(f'Checkout local branch: {" ".join(command_checkout_local)}')
-
             # Pull from subtree
-            self.repository.active_branch.repo.git.execute(command_pull)
             commands.remove(command_pull)
+            self.repository.active_branch.repo.git.execute(command_pull)
             log_this(f'Pull subtree: {" ".join(command_pull)}')
 
             # Get stashed changes
             if there_are_changes:
+                commands.remove(command_stash_apply)
                 stash_apply_changes(self)
                 log_this(f'Get stashed changes, command: git stash apply ')
 
@@ -148,15 +144,17 @@ class GitExecutor:
                                                f'Verify the code before push the changes in [{self.localBranch.name}]' \
                                                f'\n> git push --set-upstream origin {self.localBranch.name}'
         except Exception as e:
-            if 'Merge conflict' in f'{e}':
-                self.success, self.details = False, f'Merge exception. Please resolve the merge conflicts:' \
-                                                    f'\n{e} '
-            else:
-                self.success, self.details = False, f'Exception:' \
-                                                    f'\n{e} '
+            manual_info = build_exception_message(self, commands, self.localBranch, e)
+            self.success, self.details = False, f'Not able to push {self.remoteName} -> {self.remoteBranchName} ' \
+                                                f'\n{e} \n\n{manual_info} '
         return self
 
     def push_to_remote(self):
+        # Check message parameter
+        if self.message is None:
+            self.success, self.details = False, 'This parameter is missing: \n -m "Your message is required"'
+            return
+
         # Stashed changes count warning
         stash_count_warning(self)
 
@@ -284,9 +282,6 @@ class GitExecutor:
                                                f'\nCheck the changes in [{temp_branch_name}] '
 
         except Exception as e:
-            if len(commands) == 0 and self.repository.active_branch.name == temp_branch_name:
-                self.localBranch.checkout()
-                self.repository.delete_head(temp_branch_name)
             manual_info = build_exception_message(self, commands, temp_branch_name, e)
             self.success, self.details = False, f'Not able to push {self.remoteName} -> {self.remoteBranchName} ' \
                                                 f'\n{e} \n\n{manual_info} '

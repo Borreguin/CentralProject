@@ -1,6 +1,6 @@
 # General constants
-pull_action, push_action, create_action = 'pull', 'push', 'create'
-git_actions = [pull_action, push_action, create_action]
+pull_action, push_action = 'pull', 'push'
+git_actions = [pull_action, push_action]
 change_log_name = 'changelog.txt'
 
 # Subtree config constants
