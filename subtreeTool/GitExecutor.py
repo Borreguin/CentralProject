@@ -1,305 +1,288 @@
 from __future__ import annotations
-
-import datetime
 import os
-import uuid
 from typing import List
-
 from git import Repo, Remote, Head
-
-from InfoTool import InfoTool
-from sb_constant import changeLogName, pull_action, push_action, infoFileName
-from sb_util import to_snake_case, log_this
-
-# global variables to work with
-tool_path = os.path.dirname(os.path.abspath(__file__))
-tool_info_path = os.path.join(tool_path, infoFileName)
-working_path = os.getcwd()
-project_id = os.path.basename(working_path)
+from sb_constant import pull_action, push_action, subtree_name, subtree_path, remote_repository_link, \
+    remote_repository_core_name, remote_branch_core_name, change_log_name, subtree_config_file
+from sb_util import get_main_path, stash_project_changes, stash_apply_changes, stash_subtree_changes,\
+    get_username_initials, stash_apply_group_changes, log_this, add_message_to_change_log, \
+    build_exception_message, stash_count_warning, read_yml_file, check_subtree_config_path, check_path
 
 
 class GitExecutor:
-    path: str = None
+    subtreeName: str = None
+    workingPath: str = None
     subtreePath: str = None
+    subtreeConfFilePath: str = None
+    mainProjectPath: str = None
     action: str = None
     remoteName: str = None
+    remoteLink: str = None
     remoteBranchName: str = None
+    projectId: str = None
     message: str = None
     success: bool = None
-    details: str = str
+    details: str = None
     # Git Objects to work with
-    repository: Repo
-    remoteRepo: Remote
-    originRepo: Remote
-    localBranch: Head
-    sharedCommonBranch: Head
-    sharedCommonBranchName: str
-    subtreeName: str
+    repository: Repo = None
+    remoteRepo: Remote = None
+    originRepo: Remote = None
+    localBranch: Head = None
 
     def __init__(self, **kwargs):
+        # Set init attributes
         for key, value in kwargs.items():
-            if key == 'path':
-                self.path = value
-                self.subtreePath = os.path.join(working_path, value)
-                self.subtreeName = to_snake_case(os.path.basename(value))
-            else:
-                setattr(self, key, value)
-        self.repository = Repo.init(tool_path)
-        self.localBranch = self.repository.active_branch
+            setattr(self, key, value)
+
+        # Check working path
+        self.workingPath = os.getcwd()
+        self.success, self.details = check_path('Working path', self.workingPath)
+        if not self.success:
+            return
+        self.subtreeConfFilePath = os.path.join(self.workingPath, subtree_config_file)
+
+        # Set subtree config attributes from subtree.config.yml file
+        self.set_subtree_config_attributes(self.subtreeConfFilePath)
+        if not self.success:
+            return
+
+        # Get main project path and id
+        self.mainProjectPath = get_main_path(self.subtreePath, self.workingPath)
+        self.projectId = os.path.basename(self.mainProjectPath)
+
+        # Set local repository and branch
+        self.repository = Repo.init(self.mainProjectPath)
         self.originRepo = [r for r in self.repository.remotes if r.name == 'origin'][0]
+        self.localBranch = self.repository.active_branch
+
+        # Set remote repository
+        self.set_remote_repository()
 
     def __str__(self):
-        return f'[{project_id}, {self.path}] \n--> Success: {self.success} \n--> Details: \n{self.details}'
+        return f'[{self.projectId}, {self.workingPath}] \n--> Success: {self.success} \n--> Details: \n{self.details}'
 
-    def add_remote(self):
-        if os.path.exists(tool_info_path):
-            pass
-        else:
-            info_tool = InfoTool()
+    def execute_action(self):
+        if self.action == pull_action and self.remoteRepo is not None:
+            return self.pull_from_remote()
+        elif self.action == push_action and self.remoteRepo is not None:
+            return self.push_to_remote()
+        elif self.action is None:
+            self.success, self.details = False, f'No action defined'
 
-    def verify_subtree_path(self):
-        self.success = os.path.exists(self.subtreePath)
-        self.details = f'Valid path' if self.success else f'This is not a valid path: {self.subtreePath}'
-        return self.success
+        return self
 
-    def verify_remote(self):
+    def set_subtree_config_attributes(self, subtree_config_file_path):
+        # Check subtree.config.yml file path
+        self.success, self.details = check_path('Subtree.config.yml path', subtree_config_file_path)
+        if not self.success:
+            return self
+
+        # Read and set attributes from subtree.config.yml
+        subtree_config = read_yml_file(subtree_config_file_path)
+        self.subtreeName = subtree_config[subtree_name]
+        self.subtreePath = subtree_config[subtree_path]
+        self.remoteLink = subtree_config[remote_repository_link]
+        self.remoteName = subtree_config[remote_repository_core_name]
+        self.remoteBranchName = subtree_config[remote_branch_core_name]
+
+        # Check subtree config path defined in subtree.config.yml file
+        self.success, self.details = check_subtree_config_path(self.subtreePath, self.workingPath)
+        if not self.success:
+            return self
+
+    def set_remote_repository(self):
         remotes = [r for r in self.repository.remotes if r.name == self.remoteName]
-        if len(remotes) == 0:
-            self.success, self.details = False, f'This is not a valid remote: [{self.remoteName}]' + \
-                                         f'\nAvailable repos:\n{self.repository.remotes}'
-            return False
-        self.success, self.details = True, f'Remote [{self.remoteName}] added'
+        if not remotes:
+            self.repository.create_remote(self.remoteName, self.remoteLink)
+            log_this(f'Added remote repository {self.remoteName}: link {self.remoteLink}')
+            remotes = [r for r in self.repository.remotes if r.name == self.remoteName]
         self.remoteRepo = remotes[0]
-        self.remoteRepo.repo.git.execute(f'git fetch {self.remoteName}'.split(' '))
-        return True
-
-    def verify_remote_branch(self):
-        try:
-            self.remoteRepo.repo.git.execute(
-                f'git show-branch remotes/{self.remoteRepo}/{self.remoteBranchName}'.split(' '))
-            self.success, self.details = True, f'Remote branch [{self.remoteBranchName}] added'
-            self.sharedCommonBranchName = f'{self.remoteBranchName}_{self.subtreeName}'
-            return True
-        except Exception as e:
-            self.success, self.details = False, f'{e} \n\nThis branch [{self.remoteBranchName}] ' \
-                                                f'is not a valid branch in [{self.remoteRepo.name}]' + \
-                                         f'\nTo see the available branches: \n> git branch -r'
-            return False
-
-    def verify_remote_repo_and_branch(self):
-        return self.verify_remote() and self.verify_remote_branch()
-
-    def add_message_to_change_log(self) -> bool:
-        if not self.verify_subtree_path():
-            return False
-        changeLogPath = os.path.join(self.subtreePath, changeLogName)
-        mode = 'a' if os.path.exists(changeLogPath) else 'w'
-        try:
-            with open(changeLogPath, mode) as f:
-                f.write(f'\n{datetime.datetime.now()} '
-                        f'\t[{self.repository.config_reader().get_value("user", "email")}] '
-                        f'\t[{project_id}] {self.message}')
-            return True
-        except Exception as e:
-            self.success, self.details = False, f'Not able to register the message in changelog: \n{e}'
-            return False
-
-    def stash_current_changes(self):
-        self.repository.active_branch.repo.git.execute('git stash -m "[subtreeTool] save work before any action"')
-        return self
-
-    def stash_apply_saved_changes(self):
-        self.repository.active_branch.repo.git.execute('git stash apply')
-        return self
-
-    def pull_origin(self):
-        self.originRepo.repo.git.execute(f'git fetch origin'.split(' '))
-        self.originRepo.pull()
-        self.success, self.details = True, f'Pull from origin was successful: [{self.originRepo.url}]'
-        return self
 
     def pull_from_remote(self):
-
-        if not self.verify_subtree_path() or not self.verify_remote_repo_and_branch():
-            return self
-
-        self.stash_current_changes()
-
+        # Check message parameter
         if self.message is None:
             self.success, self.details = False, 'This parameter is missing: \n -m "Your message is required"'
-            return self
+            return
 
-        command_checkout = f'git checkout {self.remoteName}/{self.remoteBranchName}'.split(' ')
-        command_split = f'git subtree split -P {self.path} -b {self.sharedCommonBranchName}'.split(' ')
-        command_push = f'git push origin {self.sharedCommonBranchName}'.split(' ')
+        # Stashed changes count warning
+        stash_count_warning(self)
 
-        command_checkout_local = f'git checkout {self.localBranch.name}'.split(' ')
+        # Add project changes
+        self.repository.active_branch.repo.git.execute('git add .')
+        log_this(f'Git add: git add .')
 
-        command_pull = f'git subtree pull --prefix {self.path} origin {self.sharedCommonBranchName} --squash -m'.split(
-            ' ')
-        command_pull.append(f'"[{self.remoteName}] {self.message}"')
+        # Check if there are changes
+        there_are_changes = False
+        if 'No local changes to save' not in f'{stash_project_changes(self)}':
+            there_are_changes = True
 
-        commands: List[List[str]] = [command_checkout, command_split, command_push, command_checkout_local,
-                                     command_pull]
-
+        # Set git commands
+        command_pull = f'git subtree pull --prefix {self.subtreePath} {self.remoteName} {self.remoteBranchName} --squash -m'.split(' ')
+        command_pull.append(f'"[{self.remoteName} / {self.subtreeName}] {self.message}"')
+        command_stash_apply = f'git stash apply'.split(' ')
+        command_restore_staged = f'git restore --staged .'.split(' ')
+        commands: List[List[str]] = [command_pull, command_stash_apply, command_restore_staged]
         try:
-            # checkout to the remote branch, execute subtree split and push this branch
-            self.remoteRepo.repo.git.execute(command_checkout)
-            commands.remove(command_checkout)
-
-            self.repository.active_branch.repo.git.execute(command_split)
-            branches = [b for b in self.repository.branches if b.name == self.sharedCommonBranchName]
-            if len(branches) == 0:
-                self.success, self.details = False, f'The shared common branch was not created: [{self.sharedCommonBranchName}]'
-                return self
-            commands.remove(command_split)
-
-            self.sharedCommonBranch = branches[0]
-            self.repository.active_branch.repo.git.execute(command_push)
-            commands.remove(command_push)
-
-            self.success, self.details = True, f'Shared Common Branch was pushed {self.sharedCommonBranchName}'
-            # checkout to current branch, execute subtree pull, commit the message
-
-            self.repository.active_branch.repo.git.execute(command_checkout_local)
-            commands.remove(command_checkout_local)
+            # Pull from subtree
+            commands.remove(command_pull)
             self.repository.active_branch.repo.git.execute(command_pull)
+            log_this(f'Pull subtree: {" ".join(command_pull)}')
+
+            # Get stashed changes
+            if there_are_changes:
+                commands.remove(command_stash_apply)
+                stash_apply_changes(self)
+                log_this(f'Get stashed changes, command: git stash apply ')
+
+            # Restored staged changes
+            self.repository.active_branch.repo.git.execute(command_restore_staged)
+            commands.remove(command_restore_staged)
+            log_this(f'Git restore staged: {" ".join(command_restore_staged)}')
+
             self.success, self.details = True, f'Code successfully pulled from: ' \
                                                f'{self.remoteName} -> {self.remoteBranchName} \n' \
                                                f'Verify the code before push the changes in [{self.localBranch.name}]' \
                                                f'\n> git push --set-upstream origin {self.localBranch.name}'
-            commands.remove(command_pull)
-
         except Exception as e:
-            manual_info = self.build_exception_message(commands, None, e)
-            self.success, self.details = False, f'Not able to pull code from ' \
-                                                f'{self.remoteName} -> {self.remoteBranchName}' \
-                                                f'\n{e} \n\n{manual_info} '
-
-        return self
-
-    def push_origin(self):
-        if not self.verify_subtree_path():
-            return self
-        # add changes that are inside subtree path
-        command = f'git add {self.path}'.split(' ')
-        self.localBranch.checkout().repo.git.execute(command)
-        diff = self.repository.index.diff(self.localBranch.name)
-        if len(diff) == 0:
-            self.success, self.details = False, f'No need to commit. There are no changes in [{self.path}]'
-            return self
-        if not self.add_message_to_change_log():
-            return self
-        # add changes in ChangeLog file
-        self.localBranch.checkout().repo.git.execute(command)
-        self.localBranch.repo.index.commit(f'[{project_id}] {self.message}')
-        self.success, self.details = True, f'Changes were pushed successfully: {project_id}: -> {self.localBranch.name}'
-        return self
-
-    def push_to_remote(self):
-        if not self.verify_remote() or not self.verify_remote_branch():
-            return self
-        self.push_origin()
-        # temporal branch to use:
-        temporalBranch: Head | None = None
-        temp_branch_name = f'{self.remoteName}_temp_{uuid.uuid4()}'
-
-        # commands to execute:
-        command_split = f'git subtree split -P {self.path} -b {self.sharedCommonBranchName}'.split(' ')
-
-        command_checkout_remote = f'git checkout {self.remoteName}/{self.remoteBranchName} -b {temp_branch_name}'.split(
-            ' ')
-        command_pull_remote = f'git pull {self.remoteName} {self.remoteBranchName}'.split(' ')
-
-        command_pull_sub_tree = f'git subtree pull --prefix {self.path} origin {self.sharedCommonBranchName} --squash -m'.split(
-            ' ')
-        command_pull_sub_tree.append(f'"[{project_id}] {self.message}"')
-
-        command_commit_changes = f'git commit -m'.split(' ')
-        command_commit_changes.append(f'"[{project_id}] {self.message}"')
-
-        command_push_remote = f'git push {self.remoteName} HEAD:{self.remoteBranchName}'.split(' ')
-
-        commands = [command_split, command_checkout_remote, command_pull_remote, command_pull_sub_tree,
-                    command_commit_changes, command_push_remote]
-
-        try:
-            # put last code in shared common branch
-            self.localBranch.checkout().repo.git.execute(command_split)
-            self.originRepo.push(self.sharedCommonBranchName)
-            commands.remove(command_split)
-            log_this('Put last code in shared common branch')
-
-            # create a temporal branch:
-            self.remoteRepo.repo.git.execute(f'git fetch {self.remoteName}'.split(' '))
-            self.remoteRepo.repo.git.execute(command_checkout_remote)
-            branches = [b for b in self.repository.branches if b.name == temp_branch_name]
-            if len(branches) == 0:
-                self.success, self.details = False, f'The temporal branch was not created: [{temp_branch_name}]'
-                return self
-            temporalBranch: Head = branches[0]
-            commands.remove(command_checkout_remote)
-            log_this(f'Create a temporal branch {temp_branch_name}')
-
-            # execute split and updated code using the temporal branch
-            temporalBranch.repo.git.execute(command_pull_remote)
-            commands.remove(command_pull_remote)
-            temporalBranch.repo.git.execute(command_pull_sub_tree)
-            commands.remove(command_pull_sub_tree)
-            log_this(f'Execute split and updated code using the temporal branch')
-
-            # push code in remote repository:
-            temporalBranch.repo.git.execute(command_commit_changes)
-            commands.remove(command_commit_changes)
-            temporalBranch.repo.git.execute(command_push_remote)
-            log_this(f'Push code in remote repository: {self.remoteName}')
-            # checkout to the active branch and delete the temporal branch
-            self.localBranch.checkout()
-            temporalBranch.delete(self.repository)
-            commands.remove(command_push_remote)
-            log_this(f'Checkout to the active branch and delete the temporal branch')
-            self.success, self.details = True, f'Code successfully pushed to: ' \
-                                               f'{self.remoteName} -> {self.remoteBranchName}' \
-                                               f'\nCheck the changes in [{self.sharedCommonBranchName}] ' \
-                                               f'\n> git checkout {self.sharedCommonBranchName} '
-
-        except Exception as e:
-            if len(commands) == 0 and self.repository.active_branch.name == temp_branch_name:
-                self.localBranch.checkout()
-                self.repository.delete_head(temporalBranch)
-            manual_info = self.build_exception_message(commands, temp_branch_name, e)
+            manual_info = build_exception_message(self, commands, self.localBranch, e)
             self.success, self.details = False, f'Not able to push {self.remoteName} -> {self.remoteBranchName} ' \
                                                 f'\n{e} \n\n{manual_info} '
         return self
 
-    def build_exception_message(self, commands: List, temp_branch_name, e):
-        manual_info = str()
-        if 'Working tree has modifications' in f'{e}':
-            manual_info = f'Your project: [{project_id}] has modifications, you need to commit your changes first'
-        else:
-            manual_info += f"\nThere are conflicts between {self.remoteName} and {project_id}, run manually:\n"
-            for i, command in enumerate(commands):
-                manual_info += f'{i + 1}. {" ".join(command)}\n'
+    def push_to_remote(self):
+        # Check message parameter
+        if self.message is None:
+            self.success, self.details = False, 'This parameter is missing: \n -m "Your message is required"'
+            return
 
-            manual_info += f"\nSolve the conflicts... "
-            if temp_branch_name is not None and self.repository.active_branch.name == temp_branch_name:
-                manual_info += f'\n==============> NOTE YOU ARE IN BRANCH: {temp_branch_name}' \
-                               f"\nDo not forget to delete temporal branch: " \
-                               f"\ngit checkout {self.localBranch.name}" \
-                               f"\ngit branch --delete {temp_branch_name}\n" \
-                               f"\n==============> NOTE YOU ARE IN BRANCH: {temp_branch_name}\n"
+        # Stashed changes count warning
+        stash_count_warning(self)
 
-        return manual_info
+        # Add subtree changes
+        self.repository.active_branch.repo.git.execute(f'git add {self.subtreePath}')
+        log_this(f'Git add: git add {self.subtreePath}')
 
-    def execute_action(self):
-        if self.action == pull_action and self.remoteName is None:
-            return self.pull_origin()
-        elif self.action == pull_action and self.remoteName is not None:
-            return self.pull_from_remote()
-        elif self.action == push_action and self.remoteName is None:
-            return self.push_origin()
-        elif self.action == push_action and self.remoteName is not None:
-            return self.push_to_remote()
+        # Check subtree changes
+        if 'No local changes to save' in f'{stash_subtree_changes(self)}':
+            self.success, self.details = False, f'There are not changes in subtree {self.subtreeName}'
+            return self
+        stashed_changes = ['subtree_changes_stashed']
 
-        self.success, self.details = False, 'No action was performed'
+        # Get temporal branch name
+        temp_branch_name = f'{self.remoteBranchName}_temp_{get_username_initials(self)}'
+
+        # Add project changes
+        self.repository.active_branch.repo.git.execute('git add .')
+        log_this(f'Git add: git add .')
+
+        # Stash project changes
+        if 'No local changes to save' not in f'{stash_project_changes(self)}':
+            stashed_changes.append('project_changes_stashed')
+
+        # Get index to stash apply
+        index_to_apply = 1 if len(stashed_changes) == 2 else 0
+
+        # Set git commands
+        command_fetch_remote = f'git fetch {self.remoteName}'.split(' ')
+        command_checkout_remote = f'git checkout -b {temp_branch_name} {self.remoteName}/{self.remoteBranchName}'\
+            .split(' ')
+        command_stash_apply_subtree_by_index = f'git stash apply {index_to_apply}'.split(' ')
+        command_git_add = f'git add .'.split(' ')
+        command_commit_changes = f'git commit -m'.split(' ')
+        command_commit_changes.append(f'"[{self.projectId}] {self.message}"')
+        command_push_remote = f'git push {self.remoteName} HEAD:{temp_branch_name}'.split(' ')
+        command_checkout_local_branch = f'git checkout {self.localBranch}'.split(' ')
+        command_delete_temp_branch = f'git branch -D {temp_branch_name}'.split(' ')
+        command_stash_list = f'git stash list'.split(' ')
+        command_stash_apply_changes_group = f'git stash apply <#>'.split(' ')
+        command_restore_staged = f'git restore --staged .'.split(' ')
+        commands = [command_fetch_remote, command_checkout_remote, command_stash_apply_subtree_by_index,
+                    command_git_add, command_commit_changes, command_push_remote, command_checkout_local_branch,
+                    command_delete_temp_branch, command_stash_list, command_stash_apply_changes_group,
+                    command_restore_staged]
+
+        try:
+            # Create temporal branch
+            self.repository.active_branch.repo.git.execute(command_fetch_remote)
+            commands.remove(command_fetch_remote)
+            log_this(f'Git fetch remote: {" ".join(command_fetch_remote)}')
+
+            # Checkout to temporal branch
+            try:
+                self.repository.active_branch.repo.git.execute(command_checkout_remote)
+            except Exception as e:
+                stash_apply_group_changes(self, stashed_changes)
+                if "already exists" in f'{e}':
+                    self.success, self.details = False, f'A LOCAL branch named {temp_branch_name} already exists.'
+                    return self
+            commands.remove(command_checkout_remote)
+            log_this(f'Create a temporal branch: {" ".join(command_checkout_remote)}')
+
+            # Get temporal branch
+            branches = [b for b in self.repository.branches if b.name == temp_branch_name]
+            if len(branches) == 0:
+                self.success, self.details = False, f'The temporal branch was not created: [{command_checkout_remote}]'
+                return self
+            temporal_branch: Head = branches[0]
+
+            # Get stashed changes
+            try:
+                commands.remove(command_stash_apply_subtree_by_index)
+                temporal_branch.repo.git.execute(command_stash_apply_subtree_by_index)
+                log_this(f'Get stashed changes: {" ".join(command_stash_apply_subtree_by_index)}')
+            except Exception as e:
+                if "CONFLICT (file location)" in f'{e}':
+                    log_this(f'There are new files in subtree!')
+
+            # Edit changelog.txt file
+            change_log_file_path = os.path.join(self.mainProjectPath, change_log_name)
+            self.success, self.details = add_message_to_change_log(self, change_log_file_path)
+            if not self.success:
+                return self
+            log_this(f'Changelog.txt file updated!')
+
+            # Add changes
+            temporal_branch.repo.git.execute(command_git_add)
+            commands.remove(command_git_add)
+            log_this(f'Git add: {" ".join(command_git_add)}')
+
+            # Commit changes
+            temporal_branch.repo.git.execute(command_commit_changes)
+            commands.remove(command_commit_changes)
+            log_this(f'Commit changes: {" ".join(command_commit_changes)}')
+
+            # Push changes
+            temporal_branch.repo.git.execute(command_push_remote)
+            commands.remove(command_push_remote)
+            log_this(f'Push changes: {" ".join(command_push_remote)}')
+
+            # Checkout local branch
+            temporal_branch.repo.git.execute(command_checkout_local_branch)
+            commands.remove(command_checkout_local_branch)
+            log_this(f'Checkout local branch:  {" ".join(command_checkout_local_branch)}')
+
+            # Delete temporal branch
+            self.remoteRepo.repo.git.execute(command_delete_temp_branch)
+            commands.remove(command_delete_temp_branch)
+            log_this(f'Delete temporal branch: {" ".join(command_delete_temp_branch)}')
+
+            # Get stashed changes
+            stash_apply_group_changes(self, stashed_changes)
+            commands.remove(command_stash_list)
+            commands.remove(command_stash_apply_changes_group)
+            log_this(f'Get all stashed changes: {" ".join(command_stash_apply_changes_group)}')
+
+            # Restored staged changes
+            self.repository.active_branch.repo.git.execute(command_restore_staged)
+            commands.remove(command_restore_staged)
+            log_this(f'Git restore staged: {" ".join(command_restore_staged)}')
+
+            self.success, self.details = True, f'Code successfully pushed to: ' \
+                                               f'{self.remoteName} -> {temp_branch_name}' \
+                                               f'\nCheck the changes in [{temp_branch_name}] '
+
+        except Exception as e:
+            manual_info = build_exception_message(self, commands, temp_branch_name, e)
+            self.success, self.details = False, f'Not able to push {self.remoteName} -> {self.remoteBranchName} ' \
+                                                f'\n{e} \n\n{manual_info} '
         return self
