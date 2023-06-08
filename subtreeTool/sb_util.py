@@ -1,13 +1,13 @@
 import datetime
 import os
 import platform
+import shutil
 import subprocess as sb
 import sys
 from typing import List
+from sb_constant import readme_file, pull_action, push_action, create_action
 
-
-def log_this(msg: str):
-    print(f'[subtree]: {msg}')
+from CentralProject.subtreeTool.sb_constant import add_action
 
 
 def verify_git_lib_install_if_needed():
@@ -36,6 +36,34 @@ def verify_git_lib_install_if_needed():
     else:
         log_this(f'gitpython was not installed, check for a solution manually.')
     return was_installed >= 3
+
+
+def check_arguments_by_action(git_executor):
+    if git_executor.action == pull_action or git_executor.action == push_action:
+        return check_pull_push_arguments(git_executor.message)
+    elif git_executor.action == create_action or git_executor.action == add_action:
+        return check_create_add_arguments(git_executor.subtreePath,
+                                          git_executor.remoteBranchName,
+                                          git_executor.remoteName,
+                                          git_executor.remoteLink)
+
+
+def check_pull_push_arguments(message):
+    if message is None:
+        return False, f'Parameter message is required'
+    return True, f'Complete pull/push parameters'
+
+
+def check_create_add_arguments(subtree_path, subtree_branch , remote_name, remote_link):
+    if subtree_path is None:
+        return False, f'Parameter subtree path is required'
+    elif subtree_branch is None:
+        return False, f'Parameter subtree branch is required'
+    elif remote_name is None:
+        return False, f'Parameter remote repository name is required'
+    elif remote_link is None:
+        return False, f'Parameter remote repository link is required'
+    return True, f'Complete create parameters'
 
 
 def read_yml_file(path):
@@ -89,7 +117,7 @@ def stash_count_warning(git_executor):
     stash_list_command_output = stash_list(git_executor)
     number_stash_changes = len(stash_list_command_output.splitlines())
     if number_stash_changes > 10:
-        log_this('WARNING: You have more than 10 stashed changes, you could remove them whit this command: '
+        log_this('WARNING: You have more than 10 stashed changes, you could remove them with this command: '
                  'git stash clear')
     return number_stash_changes
 
@@ -121,14 +149,64 @@ def stash_apply_group_changes(git_executor, stashed_changes):
 
 def add_message_to_change_log(git_executor, change_log_path):
     mode = 'a' if os.path.exists(change_log_path) else 'w'
+    init_line_break = '\n' if mode == 'a' else ''
     try:
         with open(change_log_path, mode) as f:
-            f.write(f'\n{datetime.datetime.now()} '
+            f.write(f'{init_line_break}{datetime.datetime.now()} '
                     f'\t[{git_executor.repository.config_reader().get_value("user", "email")}] '
                     f'\t[{git_executor.projectId}] {git_executor.message}')
         return True, f'Added message in changelog'
     except Exception as e:
         return False, f'Not able to register in changelog file: \n{e}'
+
+
+def copy_file(origin_path, destiny_path):
+    try:
+        shutil.copy(origin_path, destiny_path)
+        return True, f'File has been copied!'
+    except Exception as e:
+        return False, f'Not able to copy file: \n{e}'
+
+
+def create_subtree_config_file(git_executor, subtree_config_path):
+    # Create subtree.config.yml file
+    mode = 'a' if os.path.exists(subtree_config_path) else 'w'
+    try:
+        with open(subtree_config_path, mode) as f:
+            f.write(f'subtreeName: "{git_executor.subtreeName}"\n'
+                    f'subtreePath: "{git_executor.subtreePath}"\n'
+                    f'remoteRepositoryName: "{git_executor.remoteName}"\n'
+                    f'remoteRepositoryLink: "{git_executor.remoteLink}"\n'
+                    f'remoteBranchName: "{git_executor.remoteBranchName}"')
+        return True, f'Subtree.config.yml file created'
+    except Exception as e:
+        return False, f'Not able to create Subtree.config.yml file: \n{e}'
+
+
+def create_readme_file(git_executor, origin_path, destiny_path):
+    # Copy readme template file
+    success, detail = copy_file(origin_path, destiny_path)
+    if not success:
+        return
+
+    readme_file_path = os.path.join(destiny_path, readme_file)
+    try:
+        # Create and read readme file
+        with open(readme_file_path, 'r') as file:
+            filedata = file.read()
+
+        # Replace values
+        filedata = filedata.replace('#subtree_path', git_executor.subtreePath)
+        filedata = filedata.replace('#subtree_name', git_executor.subtreeName)
+        filedata = filedata.replace('#remote_repository_name', git_executor.remoteName)
+
+        # Write new readme file
+        with open(readme_file_path, 'w') as file:
+            file.write(filedata)
+
+        return True, f'Readme file created'
+    except Exception as e:
+        return True, f'Not able to create readme file: \n{e}'
 
 
 def build_exception_message(git_executor, commands: List, temp_branch_name, e):
@@ -150,3 +228,7 @@ def build_exception_message(git_executor, commands: List, temp_branch_name, e):
                            f"\ngit branch --delete {temp_branch_name}\n" \
                            f"\n==============> NOTE YOU ARE IN BRANCH: {temp_branch_name}\n"
     return manual_info
+
+
+def log_this(msg: str):
+    print(f'[subtree]: {msg}')
