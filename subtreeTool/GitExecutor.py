@@ -167,6 +167,9 @@ class GitExecutor:
                                                f'Verify the code before push the changes in [{self.localBranch.name}]' \
                                                f'\n> git push --set-upstream origin {self.localBranch.name}'
         except Exception as e:
+            if not there_are_changes:
+                commands.remove(command_stash_apply)
+                commands.remove(command_restore_staged)
             manual_info = build_exception_message(self, commands, self.localBranch, e)
             self.success, self.details = False, f'Not able to push {self.remoteName} -> {self.remoteBranchName} ' \
                                                 f'\n{e} \n\n{manual_info} '
