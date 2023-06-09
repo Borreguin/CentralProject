@@ -1,5 +1,5 @@
 subtreeName: "sharedCode"
 subtreePath: "sharedCode"
+remoteRepositoryName: "CORE-MOBILE"
 remoteRepositoryLink: "https://github.com/Borreguin/CentralProject"
-remoteRepositoryCoreName: "CORE-MOBILE"
-remoteBranchCoreName: "sc_shared_code"
+remoteBranchName: "sc_shared_code"
