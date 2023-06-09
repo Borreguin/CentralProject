@@ -5,9 +5,7 @@ import shutil
 import subprocess as sb
 import sys
 from typing import List
-from sb_constant import readme_file, pull_action, push_action, create_action
-
-from CentralProject.subtreeTool.sb_constant import add_action
+from sb_constant import readme_file, pull_action, push_action, create_action, add_action
 
 
 def verify_git_lib_install_if_needed():
