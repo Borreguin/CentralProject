@@ -7,9 +7,6 @@ import shutil
 import subprocess as sb
 import sys
 from typing import List
-
-from git import Head
-
 from sb_constant import readme_file, pull_action, push_action, create_action, add_action
 
 
@@ -237,7 +234,7 @@ def build_exception_message(git_executor, commands: List, temp_branch_name, e):
     return manual_info
 
 
-def execute_and_remove(branch: Head, commands: List[str | List[str]], command_to_execute: str | List[str], msg: str):
+def execute_and_remove(branch, commands: List[str | List[str]], command_to_execute: str | List[str], msg: str):
     to_execute = command_to_execute
     if isinstance(command_to_execute, str):
         to_execute = command_to_execute.split(' ')
