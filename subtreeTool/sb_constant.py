@@ -11,3 +11,5 @@ subtree_path = 'subtreePath'
 remote_repository_name = 'remoteRepositoryName'
 remote_repository_link = 'remoteRepositoryLink'
 remote_branch_name = 'remoteBranchName'
+
+command_git_add = 'git add .'

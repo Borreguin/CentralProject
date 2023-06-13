@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import os
 import platform
@@ -5,6 +7,9 @@ import shutil
 import subprocess as sb
 import sys
 from typing import List
+
+from git import Head
+
 from sb_constant import readme_file, pull_action, push_action, create_action, add_action
 
 
@@ -52,7 +57,7 @@ def check_pull_push_arguments(message):
     return True, f'Complete pull/push parameters'
 
 
-def check_create_add_arguments(subtree_path, subtree_branch , remote_name, remote_link):
+def check_create_add_arguments(subtree_path, subtree_branch, remote_name, remote_link):
     if subtree_path is None:
         return False, f'Parameter subtree path is required'
     elif subtree_branch is None:
@@ -76,7 +81,7 @@ def read_yml_file(path):
 def check_path(label, path):
     if os.path.exists(path):
         return True, f'{label} valid: {path}'
-    return False, f'{label } invalid: {path}'
+    return False, f'{label} invalid: {path}'
 
 
 def check_subtree_config_path(subtree_config_path, subtree_path):
@@ -142,7 +147,7 @@ def stash_apply_group_changes(git_executor, stashed_changes):
             git_executor.repository.active_branch.repo.git.execute(stash_command)
         except Exception as e:
             git_executor.success, git_executor.details = False, f'MERGE CONFLICTS EXCEPTION: ' \
-                                                f'\n{e} '
+                                                                f'\n{e} '
 
 
 def add_message_to_change_log(git_executor, change_log_path):
@@ -226,6 +231,13 @@ def build_exception_message(git_executor, commands: List, temp_branch_name, e):
                            f"\ngit branch --delete {temp_branch_name}\n" \
                            f"\n==============> NOTE YOU ARE IN BRANCH: {temp_branch_name}\n"
     return manual_info
+
+
+def execute_and_remove(branch: Head, commands: List[str], command_to_execute: str | List[str], msg: str):
+    branch.repo.git.execute(command_to_execute)
+    commands.remove(command_to_execute)
+    log_this(f'{msg}: {" ".join(command_to_execute)}')
+    return commands
 
 
 def log_this(msg: str):

@@ -1,13 +1,13 @@
 from __future__ import annotations
 import os
-from typing import List
 from git import Repo, Remote, Head
 from sb_constant import pull_action, push_action, subtree_name, subtree_path, remote_repository_link, \
-    change_log_file, subtree_config_file, create_action, remote_repository_name, remote_branch_name, add_action
+    change_log_file, subtree_config_file, create_action, remote_repository_name, remote_branch_name, add_action, \
+    command_git_add
 from sb_util import get_main_path, stash_project_changes, stash_apply_changes, stash_subtree_changes, \
     get_username_initials, stash_apply_group_changes, log_this, add_message_to_change_log, \
     build_exception_message, stash_count_warning, read_yml_file, check_subtree_config_path, check_path, \
-    create_subtree_config_file, copy_file, create_readme_file, check_arguments_by_action
+    create_subtree_config_file, copy_file, create_readme_file, check_arguments_by_action, execute_and_remove
 
 script_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -130,8 +130,8 @@ class GitExecutor:
         stash_count_warning(self)
 
         # Add project changes
-        self.repository.active_branch.repo.git.execute('git add .')
-        log_this(f'Git add: git add .')
+        self.repository.active_branch.repo.git.execute(command_git_add)
+        log_this(f'Git add: {command_git_add}')
 
         # Check if there are changes
         there_are_changes = False
@@ -185,8 +185,9 @@ class GitExecutor:
         stash_count_warning(self)
 
         # Add subtree changes
-        self.repository.active_branch.repo.git.execute(f'git add {self.subtreePath}')
-        log_this(f'Git add: git add {self.subtreePath}')
+        command = f'git add {self.subtreePath}'
+        self.repository.active_branch.repo.git.execute(command.split(' '))
+        log_this(f'Git add: {command}')
 
         # Check subtree changes
         if 'No local changes to save' in f'{stash_subtree_changes(self)}':
@@ -198,8 +199,8 @@ class GitExecutor:
         temp_branch_name = f'{self.remoteBranchName}_temp_{get_username_initials(self)}'
 
         # Add project changes
-        self.repository.active_branch.repo.git.execute('git add .')
-        log_this(f'Git add: git add .')
+        self.repository.active_branch.repo.git.execute(command_git_add.split(' '))
+        log_this(f'Git add: {command_git_add}')
 
         # Stash project changes
         if 'No local changes to save' not in f'{stash_project_changes(self)}':
@@ -213,7 +214,7 @@ class GitExecutor:
         command_checkout_remote = f'git checkout -b {temp_branch_name} {self.remoteName}/{self.remoteBranchName}'\
             .split(' ')
         command_stash_apply_subtree_by_index = f'git stash apply {index_to_apply}'.split(' ')
-        command_git_add = f'git add .'.split(' ')
+        # command_git_add
         command_commit_changes = f'git commit -m'.split(' ')
         command_commit_changes.append(f'[{self.projectId}] {self.message}')
         command_push_remote = f'git push {self.remoteName} HEAD:{temp_branch_name}'.split(' ')
@@ -268,29 +269,21 @@ class GitExecutor:
             log_this(f'Changelog.txt file updated!')
 
             # Add changes
-            temporal_branch.repo.git.execute(command_git_add)
-            commands.remove(command_git_add)
-            log_this(f'Git add: {" ".join(command_git_add)}')
+            commands = execute_and_remove(temporal_branch, commands, command_git_add, 'Git add')
 
             # Commit changes
-            temporal_branch.repo.git.execute(command_commit_changes)
-            commands.remove(command_commit_changes)
-            log_this(f'Commit changes: {" ".join(command_commit_changes)}')
+            commands = execute_and_remove(temporal_branch, commands, command_commit_changes, 'Commit changes')
 
             # Push changes
-            temporal_branch.repo.git.execute(command_push_remote)
-            commands.remove(command_push_remote)
-            log_this(f'Push changes: {" ".join(command_push_remote)}')
+            commands = execute_and_remove(temporal_branch, commands, command_push_remote, 'Push changes')
 
             # Checkout local branch
-            temporal_branch.repo.git.execute(command_checkout_local_branch)
-            commands.remove(command_checkout_local_branch)
-            log_this(f'Checkout local branch:  {" ".join(command_checkout_local_branch)}')
+            commands = execute_and_remove(temporal_branch, commands, command_checkout_local_branch,
+                                          'Checkout local branch')
 
             # Delete temporal branch
-            self.remoteRepo.repo.git.execute(command_delete_temp_branch)
-            commands.remove(command_delete_temp_branch)
-            log_this(f'Delete temporal branch: {" ".join(command_delete_temp_branch)}')
+            commands = execute_and_remove(temporal_branch, commands, command_delete_temp_branch,
+                                          'Delete temporal branch')
 
             # Get stashed changes
             stash_apply_group_changes(self, stashed_changes)
@@ -318,8 +311,8 @@ class GitExecutor:
         stash_count_warning(self)
 
         # Add project changes
-        self.repository.active_branch.repo.git.execute('git add .')
-        log_this(f'Git add: git add .')
+        self.repository.active_branch.repo.git.execute(command_git_add.split(' '))
+        log_this(f'Git add: {command_git_add}')
 
         # Check if there are changes
         there_are_changes = False
@@ -328,7 +321,7 @@ class GitExecutor:
 
         # Set git commands
         command_switch_orphan = f'git switch --orphan {self.remoteBranchName}'.split(' ')
-        command_git_add = f'git add .'.split(' ')
+        # command_git_add
         command_commit = f'git commit --allow-empty -m'.split(' ')
         command_commit.append(f'[{self.projectId}] {self.message}')
         command_push = f'git push -u {self.remoteName} {self.remoteBranchName}'.split(' ')
@@ -405,8 +398,8 @@ class GitExecutor:
     def add_subtree(self):
         # Set git commands
         command_fetch_remote = f'git fetch {self.remoteName}'.split(' ')
-        command_subtree_add = f'git subtree add --prefix {self.subtreePath} {self.remoteName} {self.remoteBranchName} ' \
-                              f'--squash'.split(' ')
+        command_subtree_add = f'git subtree add --prefix {self.subtreePath} ' \
+                              f'{self.remoteName} {self.remoteBranchName} --squash'.split(' ')
 
         try:
             # Git fetch remote
