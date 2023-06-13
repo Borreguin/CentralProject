@@ -42,7 +42,8 @@ Run the Python script (subtree.py)
 
 ## D. Add subtree
 NO NEED TO RUN THIS ANYMORE THIS WAS DONE, but it is included as a reference, it was executed at the beginning.
-Run the Python script (subtree.py)
+Run the Python script (subtree.py), 
+**Note:** run this in the root of the project:
 
 1. `subtree add -p "<subtree_path>" -b "<subtree_branch>" -rn "<remote_repository_name>" -rl "<remote_repository_link>"`
 

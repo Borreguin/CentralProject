@@ -220,20 +220,23 @@ def build_exception_message(git_executor, commands: List, temp_branch_name, e):
     elif 'Merge conflict' in f'{e}':
         manual_info += f"\nThere are conflicts between {git_executor.remoteBranchName} and" \
                        f" {git_executor.projectId}. After resolve merge conflicts, run manually:\n"
-        for i, command in enumerate(commands):
-            manual_info += f'{i + 1}. {" ".join(command)}\n'
 
-        manual_info += f"\nSolve the conflicts... "
-        if temp_branch_name is not None and git_executor.repository.active_branch.name == temp_branch_name:
-            manual_info += f'\n==============> NOTE YOU ARE IN BRANCH: {temp_branch_name}' \
-                           f"\nDo not forget to delete temporal branch: " \
-                           f"\ngit checkout {git_executor.localBranch.name}" \
-                           f"\ngit branch --delete {temp_branch_name}\n" \
-                           f"\n==============> NOTE YOU ARE IN BRANCH: {temp_branch_name}\n"
+    for i, command in enumerate(commands):
+        manual_info += f'{i + 1}. {" ".join(command)}\n'
+
+    manual_info += f"\nSolve the conflicts... "
+    if temp_branch_name is not None and git_executor.repository.active_branch.name == temp_branch_name:
+        manual_info += f'\n==============> NOTE YOU ARE IN BRANCH: {temp_branch_name}' \
+                       f"\nDo not forget to delete temporal branch: " \
+                       f"\ngit checkout {git_executor.localBranch.name}" \
+                       f"\ngit branch --delete {temp_branch_name}\n" \
+                       f"\n==============> NOTE YOU ARE IN BRANCH: {temp_branch_name}\n"
     return manual_info
 
 
-def execute_and_remove(branch: Head, commands: List[str], command_to_execute: str | List[str], msg: str):
+def execute_and_remove(branch: Head, commands: List[str | List[str]], command_to_execute: str | List[str], msg: str):
+    if isinstance(command_to_execute, str):
+        command_to_execute = command_to_execute.split(' ')
     branch.repo.git.execute(command_to_execute)
     commands.remove(command_to_execute)
     log_this(f'{msg}: {" ".join(command_to_execute)}')
