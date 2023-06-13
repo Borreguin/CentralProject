@@ -1,3 +1,4 @@
+#!/usr/bin/python
 """
 This script is a tool to manage subtrees:
 A) REMOTE -> LOCAL: From remote to local -> pull

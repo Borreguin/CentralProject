@@ -40,10 +40,26 @@ Run the Python script (subtree.py)
 **Note**: Don't forget protect the created branch
 
 
-## C. Add subtree
+## D. Add subtree
 NO NEED TO RUN THIS ANYMORE THIS WAS DONE, but it is included as a reference, it was executed at the beginning.
 Run the Python script (subtree.py)
 
 1. `subtree add -p "<subtree_path>" -b "<subtree_branch>" -rn "<remote_repository_name>" -rl "<remote_repository_link>"`
 
 **Note**: If the Python script fails, follow the steps shown by the script to resolve the issue
+
+## How to make this script executable:
+### Windows:
+Follow the instructions in this 
+[link](https://docs.python.org/3/faq/windows.html#:~:text=On%20Windows%2C%20the%20standard%20Python,as%20'foo.py'.)
+### Linux/Mac:
+1. Copy this folder in `/Users/Shared` 
+2. Open and check the Python execution path in file: [subtree.py](https://github.com/Borreguin/CentralProject/blob/b93d0c0fe7b13d0f885656d9dcc6d579f3be9ceb/subtreeTool/subtree.py)
+   - `#!/usr/bin/python` (this is the usual path for python executor - changed it if you need)
+3. Rename the file _subtree.py_ to **subtree**
+4. Go to the path `/Users/Shared/subtreeTool` and give permissions:
+   - `cd /Users/Shared/subtreeTool`
+   - `chmod u+x subtree`
+5. Create a link path to the script
+   - `sudo ln -s subtree /usr/bin` 
+
