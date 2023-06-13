@@ -42,7 +42,8 @@ Run the Python script (subtree.py)
 
 ## D. Add subtree
 NO NEED TO RUN THIS ANYMORE THIS WAS DONE, but it is included as a reference, it was executed at the beginning.
-Run the Python script (subtree.py)
+Run the Python script (subtree.py), 
+**Note:** run this in the root of the project:
 
 1. `subtree add -p "<subtree_path>" -b "<subtree_branch>" -rn "<remote_repository_name>" -rl "<remote_repository_link>"`
 
@@ -62,5 +63,5 @@ To know the versions of Python that you have, you can use: `where python` or `wh
 4. Go to the path `/Users/Shared/subtreeTool` and give permissions:
    - `cd /Users/Shared/subtreeTool`
    - `sudo chmod u+x subtree`
-5. Create a link path to the script
-   - `sudo ln -s subtree /usr/bin` 
+5. Edit the path environment variable file (`/etc/paths`) by including the following path `/Users/Shared/subtreeTool` at the end of this file:
+   - `sudo nano /etc/paths` 
