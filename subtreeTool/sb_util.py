@@ -235,9 +235,10 @@ def build_exception_message(git_executor, commands: List, temp_branch_name, e):
 
 
 def execute_and_remove(branch: Head, commands: List[str | List[str]], command_to_execute: str | List[str], msg: str):
+    to_execute = command_to_execute
     if isinstance(command_to_execute, str):
-        command_to_execute = command_to_execute.split(' ')
-    branch.repo.git.execute(command_to_execute)
+        to_execute = command_to_execute.split(' ')
+    branch.repo.git.execute(to_execute)
     commands.remove(command_to_execute)
     log_this(f'{msg}: {" ".join(command_to_execute)}')
     return commands
