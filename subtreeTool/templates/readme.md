@@ -50,15 +50,17 @@ Run the Python script (subtree.py)
 
 ## How to make this script executable:
 ### Windows:
-
+Follow the instructions in this 
+[link](https://docs.python.org/3/faq/windows.html#:~:text=On%20Windows%2C%20the%20standard%20Python,as%20'foo.py'.)
 ### Linux/Mac:
 1. Copy this folder in `/Users/Shared` 
-2. Open and check the Python execution path in file: [subtree.py](https://github.com/Borreguin/CentralProject/blob/b93d0c0fe7b13d0f885656d9dcc6d579f3be9ceb/subtreeTool/subtree.py)
+2. Open and check the Python execution path in 
+file: [subtree.py](https://github.com/Borreguin/CentralProject/blob/b93d0c0fe7b13d0f885656d9dcc6d579f3be9ceb/subtreeTool/subtree.py). 
+To know the versions of Python that you have, you can use: `where python` or `where python3`
    - `#!/usr/bin/python` (this is the usual path for python executor - changed it if you need)
 3. Rename the file _subtree.py_ to **subtree**
 4. Go to the path `/Users/Shared/subtreeTool` and give permissions:
    - `cd /Users/Shared/subtreeTool`
-   - `chmod u+x subtree`
-5. Create a link path to the script
-   - `sudo ln -s subtree /usr/bin` 
-
+   - `sudo chmod u+x subtree`
+5. Edit the path environment variable file (`/etc/paths`) by including the following path `/Users/Shared/subtreeTool` at the end of this file:
+   - `sudo nano /etc/paths` 
