@@ -130,7 +130,7 @@ class GitExecutor:
         stash_count_warning(self)
 
         # Add project changes
-        self.repository.active_branch.repo.git.execute(command_git_add)
+        self.repository.active_branch.repo.git.execute(command_git_add.split(' '))
         log_this(f'Git add: {command_git_add}')
 
         # Check if there are changes
@@ -362,8 +362,8 @@ class GitExecutor:
             log_this(f'Readme file created!')
 
             # Add changes
-            self.repository.active_branch.repo.git.execute(command_git_add)
-            log_this(f'Git add: {" ".join(command_git_add)}')
+            self.repository.active_branch.repo.git.execute(command_git_add.split(' '))
+            log_this(f'Git add: {command_git_add}')
 
             # Commit changes
             self.repository.active_branch.repo.git.execute(command_commit)
