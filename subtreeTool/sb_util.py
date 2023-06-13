@@ -222,7 +222,10 @@ def build_exception_message(git_executor, commands: List, temp_branch_name, e):
                        f" {git_executor.projectId}. After resolve merge conflicts, run manually:\n"
 
     for i, command in enumerate(commands):
-        manual_info += f'{i + 1}. {" ".join(command)}\n'
+        if isinstance(command, str):
+            manual_info += f'{i + 1}. {command}\n'
+        else:
+            manual_info += f'{i + 1}. {" ".join(command)}\n'
 
     manual_info += f"\nSolve the conflicts... "
     if temp_branch_name is not None and git_executor.repository.active_branch.name == temp_branch_name:
