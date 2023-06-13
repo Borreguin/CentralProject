@@ -72,7 +72,11 @@ class GitExecutor:
 
         # Set local repository and branch
         self.repository = Repo.init(self.mainProjectPath)
-        self.originRepo = [r for r in self.repository.remotes if r.name == 'origin'][0]
+        origin_repositories = [r for r in self.repository.remotes if r.name == 'origin']
+        if not origin_repositories:
+            self.success, self.details = False, 'Origin repository not found'
+            return
+        self.originRepo = origin_repositories[0]
         self.localBranch = self.repository.active_branch
 
         # Set remote repository
@@ -396,6 +400,15 @@ class GitExecutor:
         return self
 
     def add_subtree(self):
+        # Add project changes
+        self.repository.active_branch.repo.git.execute(command_git_add.split(' '))
+        log_this(f'Git add: {command_git_add}')
+
+        # Check if there are changes
+        there_are_changes = False
+        if 'No local changes to save' not in f'{stash_project_changes(self)}':
+            there_are_changes = True
+
         # Set git commands
         command_fetch_remote = f'git fetch {self.remoteName}'.split(' ')
         command_subtree_add = f'git subtree add --prefix {self.subtreePath} ' \
@@ -410,9 +423,26 @@ class GitExecutor:
             self.repository.active_branch.repo.git.execute(command_subtree_add)
             log_this(f'Subtree add:  {" ".join(command_subtree_add)}')
 
+            # Get stashed changes
+            if there_are_changes:
+                stash_apply_changes(self)
+                log_this(f'Get stashed changes: git stash apply ')
+
+            # Create subtree.config.yml file
+            subtree_config_file_path = os.path.join(self.mainProjectPath,
+                                                    os.path.normpath(self.subtreePath),
+                                                    subtree_config_file)
+            if not os.path.exists(subtree_config_file_path):
+                self.success, self.details = create_subtree_config_file(self, subtree_config_file_path)
+                if not self.success:
+                    return self
+                log_this(f'Subtree config created!')
+
             self.success, self.details = True, f'Successful subtree addition: ' \
                                                f'{self.subtreePath}'
         except Exception as e:
+            if there_are_changes:
+                stash_apply_changes(self)
             self.success, self.details = False, f'Not able to add subtree {self.subtreeName}' \
                                                 f'\n{e}'
         return self
