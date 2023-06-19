@@ -1,5 +1,7 @@
 from __future__ import annotations
 import os
+import shutil
+
 from git import Repo, Remote, Head
 from sb_constant import pull_action, push_action, subtree_name, subtree_path, remote_repository_link, \
     change_log_file, subtree_config_file, create_action, remote_repository_name, remote_branch_name, add_action, \
@@ -215,7 +217,7 @@ class GitExecutor:
 
         # Set git commands
         command_fetch_remote = f'git fetch {self.remoteName}'.split(' ')
-        command_checkout_remote = f'git checkout -b {temp_branch_name} {self.remoteName}/{self.remoteBranchName}'\
+        command_checkout_remote = f'git checkout -b {temp_branch_name} {self.remoteName}/{self.remoteBranchName}' \
             .split(' ')
         command_stash_apply_subtree_by_index = f'git stash apply {index_to_apply}'.split(' ')
         # command_git_add
@@ -255,16 +257,21 @@ class GitExecutor:
                 self.success, self.details = False, f'The temporal branch was not created: [{command_checkout_remote}]'
                 return self
             temporal_branch: Head = branches[0]
-
             # Get stashed changes
+            abs_subtree_path = os.path.join(self.mainProjectPath, self.subtreePath)
             try:
                 commands.remove(command_stash_apply_subtree_by_index)
                 temporal_branch.repo.git.execute(command_stash_apply_subtree_by_index)
-                log_this(f'Get stashed changes: {" ".join(command_stash_apply_subtree_by_index)}')
             except Exception as e:
+                log_this(f" Exception: {e}")
                 if "CONFLICT (file location)" in f'{e}':
-                    log_this(f'There are new files in subtree!')
-
+                    log_this(f'There are new files in subtree! source: {abs_subtree_path}')
+                if "CONFLICT (modify/delete)" in f'{e}':
+                    log_this(f'Files were modified! source: {abs_subtree_path}')
+            if os.path.exists(abs_subtree_path):
+                file_names = os.listdir(abs_subtree_path)
+                for file_name in file_names:
+                    shutil.move(os.path.join(abs_subtree_path, file_name), self.mainProjectPath)
             # Edit changelog.txt file
             change_log_file_path = os.path.join(self.mainProjectPath, change_log_file)
             self.success, self.details = add_message_to_change_log(self, change_log_file_path)
@@ -325,6 +332,7 @@ class GitExecutor:
 
         # Set git commands
         command_switch_orphan = f'git switch --orphan {self.remoteBranchName}'.split(' ')
+        command_add_files = f'git add readme.md subtree.config.yml .gitignore changelog.txt'
         # command_git_add
         command_commit = f'git commit --allow-empty -m'.split(' ')
         command_commit.append(f'[{self.projectId}] {self.message}')
@@ -366,8 +374,8 @@ class GitExecutor:
             log_this(f'Readme file created!')
 
             # Add changes
-            self.repository.active_branch.repo.git.execute(command_git_add.split(' '))
-            log_this(f'Git add: {command_git_add}')
+            self.repository.active_branch.repo.git.execute(command_add_files.split(' '))
+            log_this(f'Git add: {command_add_files}')
 
             # Commit changes
             self.repository.active_branch.repo.git.execute(command_commit)

@@ -240,7 +240,8 @@ def execute_and_remove(branch, commands: List[str | List[str]], command_to_execu
         to_execute = command_to_execute.split(' ')
     branch.repo.git.execute(to_execute)
     commands.remove(command_to_execute)
-    log_this(f'{msg}: {" ".join(command_to_execute)}')
+    to_log = msg if isinstance(msg, str) else " ".join(command_to_execute)
+    log_this(f'{msg}: {to_log}')
     return commands
 
 
