@@ -257,6 +257,7 @@ class GitExecutor:
                 self.success, self.details = False, f'The temporal branch was not created: [{command_checkout_remote}]'
                 return self
             temporal_branch: Head = branches[0]
+
             # Get stashed changes
             abs_subtree_path = os.path.join(self.mainProjectPath, self.subtreePath)
             try:
@@ -268,10 +269,12 @@ class GitExecutor:
                     log_this(f'There are new files in subtree! source: {abs_subtree_path}')
                 if "CONFLICT (modify/delete)" in f'{e}':
                     log_this(f'Files were modified! source: {abs_subtree_path}')
+
             if os.path.exists(abs_subtree_path):
                 file_names = os.listdir(abs_subtree_path)
                 for file_name in file_names:
                     shutil.move(os.path.join(abs_subtree_path, file_name), self.mainProjectPath)
+
             # Edit changelog.txt file
             change_log_file_path = os.path.join(self.mainProjectPath, change_log_file)
             self.success, self.details = add_message_to_change_log(self, change_log_file_path)
