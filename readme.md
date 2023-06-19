@@ -51,13 +51,32 @@ Run the Python script (subtree.py),
 
 ## How to make this script executable:
 ### Windows:
-Follow the instructions in this 
-[link](https://docs.python.org/3/faq/windows.html#:~:text=On%20Windows%2C%20the%20standard%20Python,as%20'foo.py'.)
-### Linux/Mac:
+1. Copy this folder in `C:\Shared\subtreeTool`
+2. Open "Edit the system environment variables" section
+3. Edit _PATH_ environment variable from "User variables for admin" section
+4. Add the following path `C:\Shared\subtreeTool` and save changes
+
+### Linux:
+1. Copy this folder in `/usr/Shared`
+2. Open and check the Python execution path in 
+file: [subtree.py](https://github.com/Borreguin/CentralProject/blob/b93d0c0fe7b13d0f885656d9dcc6d579f3be9ceb/subtreeTool/subtree.py). 
+To know the versions of Python that you have, you can use: `whereis python`, `whereis python3` 
+   - `#!/usr/bin/python` (this is the usual path for python executor - changed it if you need)
+3. Rename the file _subtree.py_ to **subtree**
+4. Go to the path `/usr/Shared/subtreeTool` and give permissions:
+   - `cd /usr/Shared/subtreeTool`
+   - `sudo chmod u+x subtree`
+5. Edit the path environment variable file (`.bashrc`)
+      - `sudo nano ~/.bashrc` 
+6. Include the following lines:
+      - `export SHARED=/usr/Shared`
+      - `export PATH=$PATH:$SHARED/subtreeTool`
+
+### Mac:
 1. Copy this folder in `/Users/Shared` 
 2. Open and check the Python execution path in 
-file: [subtree.py](https://github.com/Borreguin/CentralProject/blob/b93d0c0fe7b13d0f885656d9dcc6d579f3be9ceb/subtreeTool/subtree.py) (line 1). 
-To know the versions of Python that you have to use, please execute: `where python` or `where python3`
+file: [subtree.py](https://github.com/Borreguin/CentralProject/blob/b93d0c0fe7b13d0f885656d9dcc6d579f3be9ceb/subtreeTool/subtree.py). 
+To know the versions of Python that you have, you can use: `where python`, `where python3`
    - `#!/usr/bin/python` (this is the usual path for python executor - changed it if you need)
 3. Rename the file _subtree.py_ to **subtree**
 4. Go to the path `/Users/Shared/subtreeTool` and give permissions:
