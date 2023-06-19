@@ -56,8 +56,8 @@ Follow the instructions in this
 ### Linux/Mac:
 1. Copy this folder in `/Users/Shared` 
 2. Open and check the Python execution path in 
-file: [subtree.py](https://github.com/Borreguin/CentralProject/blob/b93d0c0fe7b13d0f885656d9dcc6d579f3be9ceb/subtreeTool/subtree.py). 
-To know the versions of Python that you have, you can use: `where python` or `where python3`
+file: [subtree.py](https://github.com/Borreguin/CentralProject/blob/b93d0c0fe7b13d0f885656d9dcc6d579f3be9ceb/subtreeTool/subtree.py) (line 1). 
+To know the versions of Python that you have to use, please execute: `where python` or `where python3`
    - `#!/usr/bin/python` (this is the usual path for python executor - changed it if you need)
 3. Rename the file _subtree.py_ to **subtree**
 4. Go to the path `/Users/Shared/subtreeTool` and give permissions:
