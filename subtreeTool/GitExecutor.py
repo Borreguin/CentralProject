@@ -1,5 +1,6 @@
 from __future__ import annotations
 import os
+import re
 import shutil
 
 from git import Repo, Remote, Head
@@ -260,15 +261,31 @@ class GitExecutor:
 
             # Get stashed changes
             abs_subtree_path = os.path.join(self.mainProjectPath, self.subtreePath)
+            files_to_delete = []
             try:
                 commands.remove(command_stash_apply_subtree_by_index)
                 temporal_branch.repo.git.execute(command_stash_apply_subtree_by_index)
             except Exception as e:
                 log_this(f" Exception: {e}")
-                if "CONFLICT (file location)" in f'{e}':
-                    log_this(f'There are new files in subtree! source: {abs_subtree_path}')
-                if "CONFLICT (modify/delete)" in f'{e}':
-                    log_this(f'Files were modified! source: {abs_subtree_path}')
+
+                # List conflict exceptions
+                exception_string = e.__getattribute__('stdout')
+                exception_list = exception_string.split('CONFLICT')
+                exception_list.pop(0)
+                # Get files to delete by exception type
+                for error in exception_list:
+                    if "(modify/delete)" in f'{error}':
+                        log_this(f'Process (modify/delete) conflict!')
+                    elif "(file location)" in f'{error}':
+                        log_this(f'Process (file location) conflict!')
+                    elif "(rename/delete)" in f'{error}':
+                        log_this(f'Process (rename/delete) conflict!')
+                        file_path = re.search('renamed to (.*) in Updated upstream', error).group(1)
+                        files_to_delete.append(file_path)
+                    elif "(rename/rename)" in f'{error}':
+                        log_this(f'Process (rename/rename) conflict!')
+                        file_path = re.search('->"(.*)" in branch', error).group(1)
+                        files_to_delete.append(file_path)
 
             if os.path.exists(abs_subtree_path):
                 file_names = os.listdir(abs_subtree_path)
@@ -284,6 +301,13 @@ class GitExecutor:
 
             # Add changes
             commands = execute_and_remove(temporal_branch, commands, command_git_add, 'Git add')
+
+            # Remove conflict files
+            if len(files_to_delete) != 0:
+                for file_path in files_to_delete:
+                    log_this(f'FILE TO DELETE: {file_path}')
+                    command_delete_file = f'git rm {file_path}'.split(' ')
+                    temporal_branch.repo.git.execute(command_delete_file)
 
             # Commit changes
             commands = execute_and_remove(temporal_branch, commands, command_commit_changes, 'Commit changes')
