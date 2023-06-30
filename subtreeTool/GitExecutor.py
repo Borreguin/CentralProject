@@ -275,16 +275,16 @@ class GitExecutor:
                 # Get files to delete by exception type
                 for error in exception_list:
                     if "(modify/delete)" in f'{error}':
-                        log_this(f'Process (modify/delete) conflict!')
+                        log_this(f'Process (modify/delete) conflict! Error: {error}')
                     elif "(file location)" in f'{error}':
-                        log_this(f'Process (file location) conflict!')
+                        log_this(f'Process (file location) conflict! Error: {error}')
                     elif "(rename/delete)" in f'{error}':
-                        log_this(f'Process (rename/delete) conflict!')
                         file_path = re.search('renamed to (.*) in Updated upstream', error).group(1)
+                        log_this(f'Process (rename/delete) conflict! File: {file_path}')
                         files_to_delete.append(file_path)
                     elif "(rename/rename)" in f'{error}':
-                        log_this(f'Process (rename/rename) conflict!')
                         file_path = re.search('->"(.*)" in branch', error).group(1)
+                        log_this(f'Process (rename/rename) conflict! File: {file_path}')
                         files_to_delete.append(file_path)
 
             if os.path.exists(abs_subtree_path):
