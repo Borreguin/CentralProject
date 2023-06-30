@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import os
 import platform
+import re
 import shutil
 import subprocess as sb
 import sys
@@ -243,6 +244,15 @@ def execute_and_remove(branch, commands: List[str | List[str]], command_to_execu
     to_log = msg if isinstance(msg, str) else " ".join(command_to_execute)
     log_this(f'{msg}: {to_log}')
     return commands
+
+
+def search_path_in_error_message(error):
+    possible_errors_pattern = ['renamed to (.*) in Updated upstream', '->"(.*)" in branch']
+    for pattern in possible_errors_pattern:
+        file_path = re.search(pattern, error)
+        if file_path:
+            return file_path.group(1)
+    return None
 
 
 def log_this(msg: str):

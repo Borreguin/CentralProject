@@ -10,7 +10,8 @@ from sb_constant import pull_action, push_action, subtree_name, subtree_path, re
 from sb_util import get_main_path, stash_project_changes, stash_apply_changes, stash_subtree_changes, \
     get_username_initials, stash_apply_group_changes, log_this, add_message_to_change_log, \
     build_exception_message, stash_count_warning, read_yml_file, check_subtree_config_path, check_path, \
-    create_subtree_config_file, copy_file, create_readme_file, check_arguments_by_action, execute_and_remove
+    create_subtree_config_file, copy_file, create_readme_file, check_arguments_by_action, execute_and_remove, \
+    search_path_in_error_message
 
 script_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -275,17 +276,19 @@ class GitExecutor:
                 # Get files to delete by exception type
                 for error in exception_list:
                     if "(modify/delete)" in f'{error}':
-                        log_this(f'Process (modify/delete) conflict! Error: {error}')
+                        log_this(f'Process (modify/delete) conflict!')
                     elif "(file location)" in f'{error}':
-                        log_this(f'Process (file location) conflict! Error: {error}')
+                        log_this(f'Process (file location) conflict!')
                     elif "(rename/delete)" in f'{error}':
-                        file_path = re.search('renamed to (.*) in Updated upstream', error).group(1)
-                        log_this(f'Process (rename/delete) conflict! File: {file_path}')
-                        files_to_delete.append(file_path)
+                        file_path = search_path_in_error_message(error)
+                        if file_path:
+                            log_this(f'Process (rename/delete) conflict! File: {file_path}')
+                            files_to_delete.append(file_path)
                     elif "(rename/rename)" in f'{error}':
-                        file_path = re.search('->"(.*)" in branch', error).group(1)
-                        log_this(f'Process (rename/rename) conflict! File: {file_path}')
-                        files_to_delete.append(file_path)
+                        file_path = search_path_in_error_message(error)
+                        if file_path:
+                            log_this(f'Process (rename/rename) conflict! File: {file_path}')
+                            files_to_delete.append(file_path)
 
             if os.path.exists(abs_subtree_path):
                 file_names = os.listdir(abs_subtree_path)
