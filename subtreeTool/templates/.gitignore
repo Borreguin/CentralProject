@@ -2,4 +2,5 @@
 /.idea
 /android
 /subtree.py
-.expo
+.*
+!/.gitignore
