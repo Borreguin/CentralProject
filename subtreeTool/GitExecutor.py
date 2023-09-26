@@ -222,7 +222,7 @@ class GitExecutor:
         command_stash_apply_subtree_by_index = f'git stash apply {index_to_apply}'.split(' ')
         # command_git_add
         command_commit_changes = f'git commit -m'.split(' ')
-        command_commit_changes.append(f'[{self.projectId}] {self.message}')
+        command_commit_changes.append(f'"[{self.projectId}] {self.message}"')
         command_push_remote = f'git push {self.remoteName} HEAD:{temp_branch_name}'.split(' ')
         command_checkout_local_branch = f'git checkout {self.localBranch}'.split(' ')
         command_delete_temp_branch = f'git branch -D {temp_branch_name}'.split(' ')

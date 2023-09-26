@@ -199,9 +199,11 @@ def create_readme_file(git_executor, origin_path, destiny_path):
             filedata = file.read()
 
         # Replace values
+        filedata = filedata.replace('#subtree_name', git_executor.remoteName)
         filedata = filedata.replace('#subtree_path', git_executor.subtreePath)
-        filedata = filedata.replace('#subtree_name', git_executor.subtreeName)
+        filedata = filedata.replace('#subtree_branch', git_executor.remoteBranchName)
         filedata = filedata.replace('#remote_repository_name', git_executor.remoteName)
+        filedata = filedata.replace('#remote_repository_link', git_executor.remoteLink)
 
         # Write new readme file
         with open(readme_file_path, 'w') as file:
