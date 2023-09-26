@@ -55,15 +55,21 @@ class GitExecutor:
             # Set subtree config attributes from subtree.config.yml file
             self.subtreeConfFilePath = os.path.join(self.workingPath, subtree_config_file)
             self.set_subtree_config_attributes(self.subtreeConfFilePath)
+            # Set main project path
+            self.mainProjectPath = get_main_path(self.subtreePath, self.workingPath)
             if not self.success:
                 return
         elif self.action == create_action:
             # Set create attributes
             self.subtreeName = os.path.basename(self.subtreePath)
             self.message = f'Initial subtree commit'
+            # Set main project path
+            self.mainProjectPath = self.workingPath
+        elif self.action == add_action:
+            # Set main project path
+            self.mainProjectPath = self.workingPath
 
-        # Set main project path and id
-        self.mainProjectPath = get_main_path(self.subtreePath, self.workingPath)
+        # Set project id
         self.projectId = os.path.basename(self.mainProjectPath)
 
         # Set local repository and branch

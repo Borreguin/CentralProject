@@ -90,11 +90,13 @@ def check_subtree_config_path(subtree_config_path, subtree_path):
 
 
 def get_main_path(subtree_config_path, subtree_path):
-    subtree_path_split = subtree_config_path.split('/')
+    subtree_config_path_split = subtree_config_path.split('/')
+    subtree_config_path_split_reverse = subtree_config_path_split[::-1]
+    subtree_path_split = subtree_path.split('\\')
     subtree_path_split_reverse = subtree_path_split[::-1]
     main_path_processed = subtree_path
-    for path_item in subtree_path_split_reverse:
-        if path_item in main_path_processed:
+    for index, path_item in enumerate(subtree_config_path_split_reverse):
+        if path_item == subtree_path_split_reverse[index]:
             main_path_processed = os.path.abspath(os.path.join(main_path_processed, os.pardir))
     return main_path_processed
 
