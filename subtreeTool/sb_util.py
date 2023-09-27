@@ -7,6 +7,7 @@ import re
 import shutil
 import subprocess as sb
 import sys
+from pathlib import Path
 from typing import List
 from sb_constant import readme_file, pull_action, push_action, create_action, add_action
 
@@ -92,7 +93,7 @@ def check_subtree_config_path(subtree_config_path, subtree_path):
 def get_main_path(subtree_config_path, subtree_path):
     subtree_config_path_split = subtree_config_path.split('/')
     subtree_config_path_split_reverse = subtree_config_path_split[::-1]
-    subtree_path_split = subtree_path.split('\\')
+    subtree_path_split = Path(subtree_path).parts
     subtree_path_split_reverse = subtree_path_split[::-1]
     main_path_processed = subtree_path
     for index, path_item in enumerate(subtree_config_path_split_reverse):
